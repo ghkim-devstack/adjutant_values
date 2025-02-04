@@ -1,0 +1,227 @@
+[root@m1-master adjutant]# cat adjutant-helm-overrides.test.yaml 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Default values for adjutant.
+# This is a YAML-formatted file.
+# Declare name/value pairs to be passed into your templates.
+# name: value
+
+---
+images:
+  tags:
+    adjutant: harbor.mlpipeline.io/platform/adjutant:4.0.0
+    adjutant_db_sync: harbor.mlpipeline.io/platform/adjutant:4.0.0
+network:
+  registration:
+    node_port:
+      enabled: true
+      port: 31117
+pod:
+  replicas:
+    adjutant: 3
+  resources:
+    enabled: true
+    api:
+      requests:
+        memory: "64Mi"
+        cpu: "100m"
+      limits:
+        memory: "4096Mi"
+        cpu: "2000m"
+    engine:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "4096Mi"
+        cpu: "2000m"
+    event_engine:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "4096Mi"
+        cpu: "2000m"
+    executor:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "4096Mi"
+        cpu: "2000m"
+    jobs:
+      db_init:
+        requests:
+          memory: "64Mi"
+          cpu: "100m"
+        limits:
+          memory: "4096Mi"
+          cpu: "2000m"
+      db_sync:
+        requests:
+          memory: "64Mi"
+          cpu: "100m"
+        limits:
+          memory: "4096Mi"
+          cpu: "2000m"
+      db_drop:
+        requests:
+          memory: "64Mi"
+          cpu: "100m"
+        limits:
+          memory: "4096Mi"
+          cpu: "2000m"
+      image_repo_sync:
+        requests:
+          memory: "64Mi"
+          cpu: "100m"
+        limits:
+          memory: "4096Mi"
+          cpu: "2000m"
+      ks_user:
+        requests:
+          memory: "64Mi"
+          cpu: "100m"
+        limits:
+          memory: "4096Mi"
+          cpu: "2000m"
+      ks_service:
+        requests:
+          memory: "64Mi"
+          cpu: "100m"
+        limits:
+          memory: "4096Mi"
+          cpu: "2000m"
+      ks_endpoints:
+        requests:
+          memory: "64Mi"
+          cpu: "100m"
+        limits:
+          memory: "4096Mi"
+          cpu: "2000m"
+
+endpoints:
+  identity:
+    auth:
+      admin:
+        username: admin
+        password: password
+      adjutant:
+        password: password
+  oslo_db:
+    auth:
+      admin:
+        username: root
+        password: password
+      adjutant:
+        username: adjutant
+        password: password
+
+config:
+  kubesphere:
+    url: http://211.175.140.119:30880 # kubesphere
+  conf:
+    django:
+      databases:
+        default:
+          HOST: mariadb-cluster-primary.openstack.svc.cluster.member1
+          PORT: 3306
+          NAME: adjutant
+          PASSWORD: password
+          USER: root
+      identity:
+        username: admin
+        password: password
+        auth_url: http://keystone.openstack.svc.cluster.member1/v3
+        interface: public
+      keycloak:
+        url: http://127.0.0.1
+        internal_url: http://iam-keycloak.iam.svc.cluster.local:80 # internal url 찾아야 함 
+        admin_username: admin
+        admin_password: devSTACK1!
+        admin_client_id: admin-cli
+        admin_client_secret: uWQoVsscIWasxZ4kSjW6cdgDI0dOzj4N
+        realm: OIDC
+        openstack_client_id: OpenStack
+        openstack_client_secret: iTXvj8UaNIpUHnKGTKwZVXPq962Fb8xv
+        password: devSTACK1!
+        grafana_client_id: Grafana
+        grafana_client_secret: 8vgROuPS3QeNl28qgpU5yIzet4d4F9il
+        kubesphere_client_id: Kubesphere
+        kubesphere_client_secret: eNakthBREo39UF1DjtMizojgzNz1OCH0 # keycloak 에서 가져오기
+      ldap:
+        url: ldap://127.0.0.1
+        admin_dn: cn=admin,dc=devstack,dc=co,dc=kr
+        password: devSTACK1!
+        domain_name: ldap_domain
+        domain_id: da8fd664b5224ff9b020adeca6065348
+        group_dn: ou=groups,dc=devstack,dc=co,dc=kr
+        user_dn: ou=users,dc=devstack,dc=co,dc=kr
+      keystone:
+        admin_name: admin
+        admin_password: password
+        user_domain_id: default
+        project_name: admin
+        domain_id: default
+        auth_url: http://keystone.openstack.svc.cluster.member1:5000/v3
+    workflow:
+      horizon_url: http://127.0.0.1/dashboard
+      task_defaults:
+        emails:
+          initial:
+            subject: Task Confirmation
+            from: bounce+%(task_uuid)s@example.com
+            reply: no-reply@example.com
+            template: initial.txt
+      action_defaults:
+        NewDefaultNetworkAction:
+          region_defaults:
+            network_name: default_network
+            subnet_name: default_subnet
+            router_name: default_router
+            public_network: 60c1e85c-a6cc-4eb9-9476-b827290264a8
+        NewProjectDefaultNetworkAction:
+          region_defaults:
+            network_name: default_network
+            subnet_name: default_subnet
+            router_name: default_router
+        SetProjectQuotaAction:
+          size_difference_threshold: 0.1
+          days_between_autoapprove: 30
+          region_sizes:
+            RegionOne: small
+        UpdateProjectQuotasAction:
+          size_difference_threshold: 0.1
+          days_between_autoapprove: 30
+        ResetUserPasswordAction:
+          blacklisted_roles:
+            - admin
+    service:
+      swift:
+        host: http://127.0.0.1:8080/swift/v1/AUTH_3dee12c1231449a585fe957cd7aa9997/
+        container: business_test
+        temporal_dir: /var/lib/kolla/venv/lib/python3.6/site-packages/adjutant/uploads/
+      grafana:
+        url: http://127.0.0.1:31313/
+      adjutant:
+        url: localhost:5050/
+      kubesphere: # kubesphere 
+        url: http://211.175.140.119:30880
+        admin_username: "admin"
+        admin_password: "devSTACK1!"
+        client_id: "kubesphere"
+        client_secret: "kubesphere"
+        allowed_member_clusters:
+          - host
+          - member1
+          - member2
