@@ -455,7 +455,7 @@ config:
         # String - User domain id for Adjutant Keystone admin user.
         user_domain_id: default
         # URI - Keystone auth url that Adjutant will use.
-        auth_url: http://10.233.18.123:5000
+        auth_url: http://10.233.18.123:5000 # service/keystone-api:5000
         # String - Keystone endpoint interface type.
         interface: public
       keycloak:

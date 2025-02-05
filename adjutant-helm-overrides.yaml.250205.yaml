@@ -129,7 +129,7 @@ endpoints:
 
 config:
   kubesphere:
-    url: http://127.0.0.1:30008
+    url: http://211.175.140.119:30008
   conf:
     django:
       databases:
@@ -139,7 +139,8 @@ config:
           NAME: adjutant
           PASSWORD: password
           USER: root
-      identity:
+    identity:
+      auth:
         username: admin
         password: password
         auth_url: http://keystone.openstack.svc.cluster.member1/v3
@@ -213,4 +214,12 @@ config:
       adjutant:
         url: localhost:5050/
       kubesphere:
-        url: http://127.0.0.1:30008
+        url: http://211.175.140.119:30880
+        admin_username: "admin"
+        admin_password: "devSTACK1!"
+        client_id: "kubesphere"
+        client_secret: "kubesphere"
+        allowed_member_clusters:
+          - host
+          - member1
+          - member2
