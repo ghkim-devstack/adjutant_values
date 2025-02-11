@@ -147,6 +147,7 @@ config:
         interface: public
       keycloak:
         url: http://127.0.0.1
+        internal_url: http://iam-keycloak.iam.svc.cluster.local:80 
         admin_username: admin
         admin_password: devSTACK1!
         admin_client_id: admin-cli
@@ -157,6 +158,8 @@ config:
         password: devSTACK1!
         grafana_client_id: Grafana
         grafana_client_secret: 8vgROuPS3QeNl28qgpU5yIzet4d4F9il
+        kubesphere_client_id: Kubesphere
+        kubesphere_client_secret: eNakthBREo39UF1DjtMizojgzNz1OCH0
       ldap:
         url: ldap://127.0.0.1
         admin_dn: cn=admin,dc=devstack,dc=co,dc=kr
