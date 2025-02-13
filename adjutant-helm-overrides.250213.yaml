@@ -1,4 +1,3 @@
-[root@m1-master adjutant]# cat  adjutant-helm-overrides.yaml
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -111,6 +110,12 @@ pod:
           cpu: "2000m"
 
 endpoints:
+  oci_image_registry:
+    auth:
+      enabled: false
+      adjutant:
+        useranme: adjutant
+        password: password
   identity:
     auth:
       admin:
@@ -143,32 +148,33 @@ config:
       auth:
         username: admin
         password: password
-        auth_url: http://keystone.openstack.svc.cluster.member1/v3
+        auth_url: http://10.234.23.19:5000 # service/keystone-api:5000
         interface: public
       keycloak:
-        url: http://127.0.0.1
+        url: https://10.233.12.148:443
+        realm: OIDC
         internal_url: http://iam-keycloak.iam.svc.cluster.local:80 
-        admin_username: admin
+        admin_username: admin 
         admin_password: devSTACK1!
         admin_client_id: admin-cli
-        admin_client_secret: uWQoVsscIWasxZ4kSjW6cdgDI0dOzj4N
+        admin_client_secret: 
         realm: OIDC
-        openstack_client_id: OpenStack
-        openstack_client_secret: iTXvj8UaNIpUHnKGTKwZVXPq962Fb8xv
+        openstack_client_id: m1-openstack
+        openstack_client_secret: cgyKTRcZ8QIvvrJvcEE0vIlfg5Czhokv
         password: devSTACK1!
-        grafana_client_id: Grafana
-        grafana_client_secret: 8vgROuPS3QeNl28qgpU5yIzet4d4F9il
+        grafana_client_id: m1-managed-grafana
+        grafana_client_secret: wUPD6qDUsmKulJ7tXBC5L3rDrBSo4NzA 
         kubesphere_client_id: Kubesphere
-        kubesphere_client_secret: eNakthBREo39UF1DjtMizojgzNz1OCH0
+        kubesphere_client_secret: ENg4G4EqjkeIlfb4Rc27ge5dvyuCNo0j 
       ldap:
-        url: ldap://127.0.0.1
+        url: ldap://10.233.16.194:389
         admin_dn: cn=admin,dc=devstack,dc=co,dc=kr
         password: devSTACK1!
         domain_name: ldap_domain
         domain_id: da8fd664b5224ff9b020adeca6065348
         group_dn: ou=groups,dc=devstack,dc=co,dc=kr
         user_dn: ou=users,dc=devstack,dc=co,dc=kr
-      keystone:
+      keystone: # swift
         admin_name: admin
         admin_password: password
         user_domain_id: default
