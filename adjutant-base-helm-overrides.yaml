@@ -1,0 +1,593 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Default values for adjutant.
+# This is a YAML-formatted file.
+# Declare name/value pairs to be passed into your templates.
+# name: value
+
+---
+labels:
+  api:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+  engine:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+  event_engine:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+  executor:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+  job:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+  test:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+
+replicaCount: 3
+
+images:
+  tags:
+    dep_check: quay.io/rackspace/rackerlabs-kubernetes-entrypoint:v1.0.0
+    db_init: quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy
+    db_drop: quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy
+    ks_user: quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy
+    ks_service: quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy
+    ks_endpoints: quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy
+    image_repo_sync: quay.io/rackspace/rackerlabs-docker:17.07.0
+    adjutant: harbor.mlpipeline.io/platform/adjutant:2.0.0
+    adjutant_db_sync: harbor.mlpipeline.io/platform/adjutant:2.0.0
+  pull_policy: "Always"
+  local_registry:
+    active: false
+    exclude:
+      - dep_check
+      - image_repo_sync
+
+network:
+  registration:
+    ingress:
+      public: true
+      classes:
+        namespace: "nginx"
+        cluster: "nginx-openstack"
+      annotations:
+        nginx.ingress.kubernetes.io/rewrite-target: /
+    node_port:
+      enabled: false
+      port: 31117
+
+dependencies:
+  dynamic:
+    common:
+      local_image_registry:
+        jobs:
+          - adjutant-image-repo-sync
+        services:
+          - endpoint: node
+            service: local_image_registry
+  static:
+    registration:
+      jobs:
+      services:
+        - endpoint: internal
+          service: oslo_db
+        - endpoint: internal
+          service: identity
+    db_drop:
+      services:
+        - endpoint: internal
+          service: oslo_db
+    db_init:
+      services:
+        - endpoint: internal
+          service: oslo_db
+    db_sync:
+      jobs:
+        - adjutant-db-init
+      services:
+        - endpoint: internal
+          service: oslo_db
+
+# Names of secrets used by bootstrap and environmental checks
+secrets:
+  identity:
+    admin: adjutant-keystone-admin
+    adjutant: adjutant-keystone-user
+  oslo_db:
+    admin: adjutant-db-admin
+    adjutant: adjutant-db-user
+  oci_image_registry:
+    adjutant: adjutant-oci-image-registry
+
+podSecurityContext: {}
+
+securityContext: null
+
+# typically overridden by environmental
+# values, but should include all endpoints
+# required by this chart
+endpoints:
+  cluster_domain_suffix: cluster.local
+  local_image_registry:
+    name: docker-registry
+    namespace: docker-registry
+    hosts:
+      default: localhost
+      internal: docker-registry
+      node: localhost
+    host_fqdn_override:
+      default: null
+    port:
+      registry:
+        node: 5000
+  oci_image_registry:
+    name: oci-image-registry
+    namespace: oci-image-registry
+    auth:
+      enabled: false
+      adjutant:
+        username: adjutant
+        password: password
+    hosts:
+      default: localhost
+    host_fqdn_override:
+      default: null
+    port:
+      registry:
+        default: null
+  identity:
+    name: keystone
+    auth:
+      admin:
+        region_name: RegionOne
+        username: admin
+        password: password
+        project_name: admin
+        user_domain_name: default
+        project_domain_name: default
+      adjutant:
+        role: admin,service
+        region_name: RegionOne
+        username: adjutant
+        password: password
+        project_name: service
+        user_domain_name: service
+        project_domain_name: service
+    hosts:
+      default: keystone
+      internal: keystone-api
+    host_fqdn_override:
+      default: null
+    path:
+      default: /v3
+    scheme:
+      default: http
+    port:
+      api:
+        default: 5000
+        public: 80
+        internal: 5000
+        service: 5000
+  registration:
+    name: adjutant
+    hosts:
+      default: adjutant
+      public: adjutant
+    host_fqdn_override:
+      default: null
+    path:
+      default: null
+    scheme:
+      default: 'http'
+    port:
+      api:
+        default: 5050
+        public: 5050
+        internal: 5050
+        service: 5050
+  oslo_db:
+    auth:
+      admin:
+        username: admin
+        password: password
+        secret:
+          tls:
+            internal: mariadb-tls-direct
+      adjutant:
+        username: adjutant
+        password: password
+    hosts:
+      default: mariadb-cluster-primary
+    host_fqdn_override:
+      default: null
+    path: /adjutant
+    scheme: mysql+pymysql
+    port:
+      mysql:
+        default: 3306
+
+config:
+  kubesphere:
+    url: http://127.0.0.1:30008
+  conf:
+    django:
+      databases:
+        default:
+          HOST: mariadb-cluster-primary.openstack.svc.cluster
+          PORT: 3306
+          NAME: adjutant
+          PASSWORD: password
+          USER: root
+      email:
+        email_backend: django.core.mail.backends.smtp.EmailBackend
+        host: 'smtp.gmail.com'
+        host_password: 'kjqj xyud noyc hfgt'
+        host_user: 'no-reply@devstack.co.kr'
+        port: 465
+        use_ssl: true
+        use_tls: false
+    identity:
+      auth:
+        username: admin
+        password: password
+        project_name: admin
+        project_domain_id: default
+        user_domain_id: default
+        auth_url: http://keystone.openstack.svc.cluster/v3
+        interface: public
+      keycloak:
+        url: http://127.0.0.1
+        internal_url: http://iam-keycloak.iam.svc.cluster.local:80
+        admin_username: admin
+        admin_password: password
+        admin_client_id: admin-cli
+        admin_client_secret: uWQoVsscIWasxZ4kSjW6cdgDI0dOzj4N
+        realm: OIDC
+        openstack_client_id: OpenStack
+        openstack_client_secret: iTXvj8UaNIpUHnKGTKwZVXPq962Fb8xv
+        password: devSTACK1!
+        grafana_client_id: Grafana
+        grafana_client_secret: 8vgROuPS3QeNl28qgpU5yIzet4d4F9ilo
+        kubesphere_client_id: Kubesphere
+        kubesphere_client_secret: ENg4G4EqjkeIlfb4Rc27ge5dvyuCNo0j
+      ldap:
+        url: ldap://127.0.0.1
+        admin_dn: cn=admin,dc=devstack,dc=co,dc=kr
+        password: devSTACK1!
+        domain_name: ldap_domain
+        domain_id: da8fd664b5224ff9b020adeca6065348
+        group_dn: ou=groups,dc=devstack,dc=co,dc=kr
+        user_dn: ou=users,dc=devstack,dc=co,dc=kr
+      keystone:
+        admin_name: admin
+        admin_password: devSTACK1!
+        user_domain_id: default
+        project_name: admin
+        domain_id: default
+        auth_url: http://keystone.openstack.svc.cluster:5000/v3
+    api:
+      active_delegate_apis: {}
+    workflow:
+      horizon_url: http://127.0.0.1/dashboard
+      default_token_expiry: 86400
+      task_defaults:
+        emails:
+          initial:
+            subject: Task Confirmation
+            from: bounce+%(task_uuid)s@example.com
+            reply: no-reply@example.com
+            template: initial.txt
+      action_defaults:
+        NewDefaultNetworkAction:
+          region_defaults:
+            network_name: default_network
+            subnet_name: default_subnet
+            router_name: default_router
+            public_network: 60c1e85c-a6cc-4eb9-9476-b827290264a8
+        NewProjectDefaultNetworkAction:
+          region_defaults:
+            network_name: default_network
+            subnet_name: default_subnet
+            router_name: default_router
+        SetProjectQuotaAction:
+          size_difference_threshold: 0.1
+          days_between_autoapprove: 30
+          region_sizes:
+            RegionOne: small
+        UpdateProjectQuotasAction:
+          size_difference_threshold: 0.1
+          days_between_autoapprove: 30
+        ResetUserPasswordAction:
+          blacklisted_roles:
+            - admin
+    quota:
+      sizes:
+        large:
+          cinder:
+            gigabytes: 50000
+            snapshots: 600
+            volumes: 200
+          neutron:
+            floatingip: 50
+            network: 10
+            port: 500
+            router: 10
+            security_group: 100
+            security_group_rule: 800
+            subnet: 10
+          nova:
+            cores: 200
+            fixed_ips: 0
+            floating_ips: 50
+            injected_file_content_bytes: 10240
+            injected_files: 5
+            instances: 100
+            key_pairs: 50
+            metadata_items: 128
+            ram: 655360
+            security_group_rules: 800
+            security_groups: 100
+          octavia:
+            health_monitor: 100
+            listener: 10
+            load_balancer: 10
+            member: 10
+            pool: 10
+          trove:
+            backups: 100
+            instances: 20
+            volumes: 20
+        medium:
+          cinder:
+            gigabytes: 10000
+            snapshots: 300
+            volumes: 100
+          neutron:
+            floatingip: 25
+            network: 5
+            port: 250
+            router: 5
+            security_group: 50
+            security_group_rule: 400
+            subnet: 5
+          nova:
+            cores: 100
+            fixed_ips: 0
+            floating_ips: 25
+            injected_file_content_bytes: 10240
+            injected_files: 5
+            instances: 50
+            key_pairs: 50
+            metadata_items: 128
+            ram: 327680
+            security_group_rules: 400
+            security_groups: 50
+          octavia:
+            health_monitor: 50
+            listener: 5
+            load_balancer: 5
+            member: 5
+            pool: 5
+          trove:
+            backups: 50
+            instances: 10
+            volumes: 10
+        small:
+          cinder:
+            gigabytes: 5000
+            snapshots: 50
+            volumes: 20
+          neutron:
+            floatingip: 10
+            network: 3
+            port: 50
+            router: 3
+            security_group: 20
+            security_group_rule: 100
+            subnet: 3
+          nova:
+            cores: 20
+            fixed_ips: 0
+            floating_ips: 10
+            injected_file_content_bytes: 10240
+            injected_files: 5
+            instances: 10
+            key_pairs: 50
+            metadata_items: 128
+            ram: 65536
+            security_group_rules: 100
+            security_groups: 20
+          octavia:
+            health_monitor: 5
+            listener: 1
+            load_balancer: 1
+            member: 2
+            pool: 1
+          trove:
+            backups: 15
+            instances: 3
+            volumes: 3
+      sizes_ascending:
+        - small
+        - medium
+        - large
+      services:
+        '*':
+          - cinder
+          - neutron
+          - nova
+    service:
+      swift:
+        host: http://127.0.0.1:8080/swift/v1/AUTH_3dee12c1231449a585fe957cd7aa9997/
+        container: business_test
+        temporal_dir: /var/lib/kolla/venv/lib/python3.6/site-packages/adjutant/uploads/
+      grafana:
+        url: http://127.0.0.1:31313/
+      adjutant:
+        url: localhost:5050/
+      kubesphere:
+        url: http://211.175.140.119:30880
+        admin_username: "admin"
+        admin_password: "devSTACK1!"
+        client_id: "kubesphere"
+        client_secret: "kubesphere"
+        allowed_member_clusters:
+          - host
+          - member1
+          - member2
+    resources:
+      types:
+        create_instance: {}
+        delete_instance: {}
+
+pod:
+  user:
+    adjutant:
+      uid: 1000
+  affinity:
+    anti:
+      type:
+        default: preferredDuringSchedulingIgnoredDuringExecution
+      topologyKey:
+        default: kubernetes.io/hostname
+      weight:
+        default: 10
+  resources:
+    enabled: false
+    jobs:
+      db_init:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      db_sync:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      db_drop:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      image_repo_sync:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      ks_user:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      ks_service:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      ks_endpoints:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+    api:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+  tolerations:
+    adjutant:
+      enabled: false
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+  lifecycle:
+    upgrades:
+      deployments:
+        revision_history: 3
+        pod_replacement_strategy: RollingUpdate
+        rolling_update:
+          max_unavailable: 1
+          max_surge: 3
+    disruption_budget:
+      adjutant:
+        min_available: 0
+    termination_grace_period:
+      adjutant:
+        timeout: 30
+  mounts:
+    adjutant:
+      init_container: null
+      adjutant:
+        volumeMounts:
+        volumes:
+    adjutant_db_init:
+      init_container: null
+      adjutant_db_init:
+        volumeMounts:
+        volumes:
+    adjutant_db_sync:
+      init_container: null
+      adjutant_db_sync:
+        volumeMounts:
+        volumes:
+
+network_policy:
+  adjutant:
+    ingress:
+      - {}
+    egress:
+      - {}
+
+manifests:
+  adjutant_bin: true
+  configmap_etc: true
+  secret_db: true
+  secret_keystone: true
+  secret_registry: true
+  secret_ingress_tls: false
+  deployment: true
+  service: true
+  service_ingress: false
+  ingress: false
+  certificates: false
+  network_policy: false
+  pdb: false
+  job_db_init: true
+  job_db_sync: true
+  job_ks_user: true
+  job_ks_service: true
+  job_ks_endpoints: true

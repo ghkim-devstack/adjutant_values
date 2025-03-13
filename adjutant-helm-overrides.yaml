@@ -1,4 +1,3 @@
-[root@m1-master adjutant]# cat  adjutant-helm-overrides.yaml
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -19,8 +18,8 @@
 ---
 images:
   tags:
-    adjutant: harbor.mlpipeline.io/platform/adjutant:4.0.0
-    adjutant_db_sync: harbor.mlpipeline.io/platform/adjutant:4.0.0
+    adjutant: harbor.mlpipeline.io/platform/adjutant:4.0.2.dev6
+    adjutant_db_sync: harbor.mlpipeline.io/platform/adjutant:4.0.2.dev6
 network:
   registration:
     node_port:
@@ -111,66 +110,60 @@ pod:
           cpu: "2000m"
 
 endpoints:
-  identity:
-    auth:
-      admin:
-        username: admin
-        password: password
-      adjutant:
-        password: password
   oslo_db:
     auth:
       admin:
         username: root
-        password: password
-      adjutant:
-        username: adjutant
-        password: password
 
 config:
   kubesphere:
-    url: http://127.0.0.1:30008
+    url: http://211.175.140.119:30880
   conf:
     django:
       databases:
         default:
           HOST: mariadb-cluster-primary.openstack.svc.cluster.member1
-          PORT: 3306
-          NAME: adjutant
-          PASSWORD: password
-          USER: root
-      identity:
-        username: admin
-        password: password
-        auth_url: http://keystone.openstack.svc.cluster.member1/v3
-        interface: public
+    identity:
+      auth:
+        auth_url: http://keystone-api.openstack.svc.cluster.member1:5000/v3
+        region: RegionOne
       keycloak:
-        url: http://127.0.0.1
+        url: https://211.175.140.166:31115
+        internal_url: http://211.175.140.166:31114  
         admin_username: admin
-        admin_password: devSTACK1!
         admin_client_id: admin-cli
-        admin_client_secret: uWQoVsscIWasxZ4kSjW6cdgDI0dOzj4N
+        admin_client_secret: LgcDpmR7C5ZboZ5K92T8vBgzZClR2WWm 
         realm: OIDC
-        openstack_client_id: OpenStack
-        openstack_client_secret: iTXvj8UaNIpUHnKGTKwZVXPq962Fb8xv
-        password: devSTACK1!
-        grafana_client_id: Grafana
-        grafana_client_secret: 8vgROuPS3QeNl28qgpU5yIzet4d4F9il
+        openstack_client_id: openstack
+        openstack_client_secret: Zg7fstqmHjR4LnQ2GwI1LoLl5qRJRF7r
+        grafana_client_id: m1-managed-grafana
+        grafana_client_secret: PJnJPKPcSs2NLgHZFdZeMVWOrbatb7E9
+        kubesphere_client_id: Kubesphere
+        kubesphere_client_secret: NmrV3nRg52g6ATjO2sYfYQwBvchvLzU6 
+        ldap_parent_id: 936ec538-b28d-42a7-a1fa-73f34d0bab45
+        ldap_groups_mapper_id: adbc71b1-0de3-4484-b112-472e9773183f
       ldap:
-        url: ldap://127.0.0.1
+        url: ldap://211.175.140.166:31111
         admin_dn: cn=admin,dc=devstack,dc=co,dc=kr
-        password: devSTACK1!
         domain_name: ldap_domain
         domain_id: da8fd664b5224ff9b020adeca6065348
         group_dn: ou=groups,dc=devstack,dc=co,dc=kr
         user_dn: ou=users,dc=devstack,dc=co,dc=kr
       keystone:
-        admin_name: admin
-        admin_password: password
-        user_domain_id: default
-        project_name: admin
-        domain_id: default
-        auth_url: http://keystone.openstack.svc.cluster.member1:5000/v3
+        auth_url: http://keystone-api.openstack.svc.cluster.member1:5000/v3
+    api:
+      active_delegate_apis:
+        - SignUp
+        - UpdateProjectQuotas
+        - UserUpdateEmail
+        - UserRoles
+        - UserDetail
+        - UserResetPassword
+        - UserList
+        - RoleList
+        - CreateInstance
+        - DeleteInstance
+
     workflow:
       horizon_url: http://127.0.0.1/dashboard
       task_defaults:
@@ -204,13 +197,24 @@ config:
           blacklisted_roles:
             - admin
     service:
-      swift:
-        host: http://127.0.0.1:8080/swift/v1/AUTH_3dee12c1231449a585fe957cd7aa9997/
-        container: business_test
-        temporal_dir: /var/lib/kolla/venv/lib/python3.6/site-packages/adjutant/uploads/
       grafana:
-        url: http://127.0.0.1:31313/
+        url: http://211.175.140.166:31314
+        allowed_member_clusters:
+          - member1
+          - member2
       adjutant:
-        url: localhost:5050/
+        url:  http://adjutant.openstack.svc.cluster.member1:5050/
       kubesphere:
-        url: http://127.0.0.1:30008
+        url: http://211.175.140.119:30880
+      mistral:
+        url: http://mistral-api.openstack.svc.cluster.member1:8989/v2
+    resource_request:
+      types:
+        create_instance:
+          args:
+            - name
+            - image_id
+            - flavor_id
+        delete_instance:
+          args:
+            - instance_id
